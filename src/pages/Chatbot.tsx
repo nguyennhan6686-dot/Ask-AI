@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Send, Bot, User, Loader2, Sparkles, Lightbulb, GraduationCap, UserCircle, ArrowRight } from "lucide-react";
 import { cn } from "../utils/cn";
 import { GoogleGenAI } from "@google/genai";
-import localforage from "localforage";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 interface Message {
   id: string;
@@ -106,7 +107,19 @@ export function Chatbot() {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const fullKnowledgeBase = (await localforage.getItem('eduquest_knowledge_base')) as string || "";
+      
+      // Lấy tài liệu từ Firestore thay vì IndexedDB
+      let fullKnowledgeBase = "";
+      try {
+        const docRef = doc(db, "appData", "knowledgeBase");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          fullKnowledgeBase = docSnap.data().content || "";
+        }
+      } catch (err) {
+        console.error("Lỗi khi lấy dữ liệu từ Firestore:", err);
+      }
+      
       const safeKnowledgeBase = fullKnowledgeBase.slice(0, 1000000);
       
       const systemInstruction = `Bạn là một Gia sư AI thân thiện, vui vẻ, xưng hô là "Tớ" và gọi học sinh là "${studentName}". 

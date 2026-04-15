@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { Plus, Save, Trash2, FileText, Upload, Loader2 } from "lucide-react";
+import { Plus, Save, Trash2, FileText, Upload, Loader2, Lock } from "lucide-react";
 import { motion } from "motion/react";
-import localforage from "localforage";
 import * as mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { db, auth } from "../firebase";
 
 // Cấu hình worker cho PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -18,6 +20,7 @@ interface Question {
 }
 
 export function Teacher() {
+  const [user, setUser] = useState<User | null>(null);
   const [questions, setQuestions] = useState<Question[]>([
     {
       id: "1",
@@ -35,24 +38,47 @@ export function Teacher() {
   const [knowledgeBase, setKnowledgeBase] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
-    // Sử dụng localforage (IndexedDB) thay vì localStorage để lưu trữ không giới hạn (lên tới hàng trăm MB)
-    localforage.getItem('eduquest_knowledge_base').then((savedKb) => {
-      if (savedKb) {
-        setKnowledgeBase(savedKb as string);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // Tải dữ liệu từ Firestore thay vì localforage
+    const loadData = async () => {
+      try {
+        const docRef = doc(db, "appData", "knowledgeBase");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setKnowledgeBase(docSnap.data().content || "");
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu từ Firestore:", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    loadData();
   }, []);
 
   const handleSave = async () => {
+    if (!user) {
+      alert("Bạn cần đăng nhập để lưu tài liệu!");
+      return;
+    }
     setIsSaving(true);
     try {
-      await localforage.setItem('eduquest_knowledge_base', knowledgeBase);
-      alert("Đã lưu tài liệu và câu hỏi thành công!");
+      // Lưu dữ liệu lên Firestore
+      const docRef = doc(db, "appData", "knowledgeBase");
+      await setDoc(docRef, { content: knowledgeBase }, { merge: true });
+      alert("Đã lưu tài liệu và câu hỏi lên hệ thống thành công!");
     } catch (error) {
       console.error("Lỗi khi lưu tài liệu:", error);
-      alert("Có lỗi xảy ra khi lưu tài liệu.");
+      alert("Có lỗi xảy ra khi lưu tài liệu. Vui lòng kiểm tra quyền truy cập (Security Rules) trên Firebase.");
     } finally {
       setIsSaving(false);
     }
@@ -128,6 +154,20 @@ export function Teacher() {
   const updateCorrectAnswer = (qId: string, index: number) => {
     setQuestions(questions.map(q => q.id === qId ? { ...q, correctAnswer: index } : q));
   };
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+        <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center">
+          <Lock className="w-12 h-12 text-purple-600" />
+        </div>
+        <h2 className="text-3xl font-bold text-gray-800">Yêu cầu Đăng nhập</h2>
+        <p className="text-gray-500 max-w-md">
+          Khu vực này dành riêng cho Giáo viên. Vui lòng nhấn nút "Đăng nhập" ở góc phải màn hình (hoặc thanh menu) để tiếp tục.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">

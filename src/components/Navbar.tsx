@@ -1,16 +1,43 @@
 import { Link, useLocation } from "react-router-dom";
-import { Brain, Home, MessageSquare, Settings, Trophy } from "lucide-react";
+import { Brain, Home, MessageSquare, Settings, Trophy, LogIn, LogOut } from "lucide-react";
 import { cn } from "../utils/cn";
 import { motion } from "motion/react";
+import { useState, useEffect } from "react";
+import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { auth, googleProvider } from "../firebase";
 
 export function Navbar() {
   const location = useLocation();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Lỗi đăng nhập:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Lỗi đăng xuất:", error);
+    }
+  };
 
   const links = [
-    { to: "/", icon: Home, label: "Trang chủ" },
-    { to: "/quiz", icon: Brain, label: "Trắc nghiệm" },
-    { to: "/chat", icon: MessageSquare, label: "Gia sư AI" },
-    { to: "/teacher", icon: Settings, label: "Giáo viên" },
+    { to: "/app", icon: Home, label: "Trang chủ" },
+    { to: "/app/quiz", icon: Brain, label: "Trắc nghiệm" },
+    { to: "/app/chat", icon: MessageSquare, label: "Gia sư AI" },
+    { to: "/app/teacher", icon: Settings, label: "Giáo viên" },
   ];
 
   return (
@@ -18,7 +45,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="hidden md:flex items-center">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/app" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
               </div>
@@ -30,7 +57,7 @@ export function Navbar() {
 
           <div className="flex flex-1 md:flex-none justify-around md:justify-end items-center md:gap-8">
             {links.map((link) => {
-              const isActive = location.pathname === link.to;
+              const isActive = location.pathname === link.to || (link.to === '/app' && location.pathname === '/app/');
               const Icon = link.icon;
 
               return (
@@ -56,11 +83,24 @@ export function Navbar() {
             })}
           </div>
           
-          <div className="hidden md:flex items-center ml-8 pl-8 border-l border-gray-200">
+          <div className="hidden md:flex items-center ml-8 pl-8 border-l border-gray-200 gap-4">
             <div className="flex items-center gap-2 bg-orange-100 px-3 py-1.5 rounded-full">
               <Trophy className="w-4 h-4 text-orange-500" />
               <span className="font-bold text-orange-700">1.250</span>
             </div>
+            
+            {user ? (
+              <div className="flex items-center gap-3">
+                <img src={user.photoURL || ""} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-200" />
+                <button onClick={handleLogout} className="text-gray-500 hover:text-red-500 transition-colors" title="Đăng xuất">
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleLogin} className="flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl font-medium transition-colors">
+                <LogIn className="w-4 h-4" /> Đăng nhập
+              </button>
+            )}
           </div>
         </div>
       </div>
