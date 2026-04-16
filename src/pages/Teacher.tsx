@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { Plus, Save, Trash2, FileText, Upload, Loader2, Lock } from "lucide-react";
+import { Plus, Save, Trash2, FileText, Upload, Loader2, Lock, LogIn } from "lucide-react";
 import { motion } from "motion/react";
 import * as mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
@@ -155,6 +155,22 @@ export function Teacher() {
     setQuestions(questions.map(q => q.id === qId ? { ...q, correctAnswer: index } : q));
   };
 
+  const handleLogin = async () => {
+    try {
+      const { auth, googleProvider } = await import("../firebase");
+      const { signInWithPopup } = await import("firebase/auth");
+      await signInWithPopup(auth, googleProvider);
+    } catch (error: any) {
+      console.error("Lỗi đăng nhập:", error);
+      if (error.code === "auth/unauthorized-domain") {
+        const currentDomain = window.location.hostname;
+        alert(`Lỗi: Tên miền này chưa được cấp phép trong Firebase.\n\nBạn hãy vào Firebase Console -> Authentication -> Settings -> Authorized domains và thêm tên miền này vào nhé:\n👉 ${currentDomain}`);
+      } else {
+        alert("Lỗi đăng nhập: " + error.message);
+      }
+    }
+  };
+
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
@@ -163,8 +179,11 @@ export function Teacher() {
         </div>
         <h2 className="text-3xl font-bold text-gray-800">Yêu cầu Đăng nhập</h2>
         <p className="text-gray-500 max-w-md">
-          Khu vực này dành riêng cho Giáo viên. Vui lòng nhấn nút "Đăng nhập" ở góc phải màn hình (hoặc thanh menu) để tiếp tục.
+          Khu vực này dành riêng cho Giáo viên. Vui lòng đăng nhập để tiếp tục quản lý tài liệu.
         </p>
+        <Button onClick={handleLogin} className="gap-2 px-8 py-6 text-lg rounded-2xl">
+          <LogIn className="w-5 h-5" /> Đăng nhập bằng Google
+        </Button>
       </div>
     );
   }
@@ -188,7 +207,12 @@ export function Teacher() {
             <FileText className="w-8 h-8 text-blue-500" />
           </div>
           <div className="flex-1 w-full">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Tài liệu Tham khảo cho AI</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-xl font-bold text-gray-800">Tài liệu Tham khảo cho AI</h3>
+              <div className="text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                {knowledgeBase.length > 0 ? `Đã tải: ${knowledgeBase.length} ký tự` : "Chưa có dữ liệu"}
+              </div>
+            </div>
             <p className="text-gray-600 mb-4">
               Nhập nội dung hoặc tải lên tệp văn bản (.txt). Gia sư AI sẽ <strong>chỉ dựa vào nội dung này</strong> để trả lời đúng trọng tâm câu hỏi của học sinh.
             </p>
@@ -198,10 +222,10 @@ export function Teacher() {
                 value={knowledgeBase}
                 onChange={(e) => setKnowledgeBase(e.target.value)}
                 placeholder="Dán nội dung bài học, quy định, hoặc kiến thức vào đây..."
-                className="w-full h-48 bg-white border border-gray-200 rounded-xl p-4 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all resize-none"
+                className="w-full h-48 bg-white border border-gray-200 rounded-xl p-4 focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none transition-all resize-none font-mono text-sm"
               />
               
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <label className="relative cursor-pointer">
                   <Button variant="secondary" className="gap-2 pointer-events-none" disabled={isUploading}>
                     {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} 
@@ -215,7 +239,10 @@ export function Teacher() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                   />
                 </label>
-                <span className="text-sm text-gray-500">Hỗ trợ file Text, PDF và Word.</span>
+                <Button variant="outline" size="sm" onClick={() => setKnowledgeBase("")} className="text-red-500 hover:text-red-600 border-red-100 hover:bg-red-50">
+                  Xóa hết
+                </Button>
+                <span className="text-sm text-gray-500 italic">Hỗ trợ file Text, PDF và Word.</span>
               </div>
             </div>
           </div>

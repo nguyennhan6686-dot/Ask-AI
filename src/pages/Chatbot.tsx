@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Send, Bot, User, Loader2, Sparkles, Lightbulb, GraduationCap, UserCircle, ArrowRight } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, Lightbulb, GraduationCap, UserCircle, ArrowRight, Settings } from "lucide-react";
 import { cn } from "../utils/cn";
 import { GoogleGenAI } from "@google/genai";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { db, auth } from "../firebase";
+import { Link } from "react-router-dom";
 
 interface Message {
   id: string;
@@ -47,11 +49,19 @@ export function Chatbot() {
   const [studentName, setStudentName] = useState("");
   const [isJoined, setIsJoined] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [user, setUser] = useState<FirebaseUser | null>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Kiểm tra xem học sinh đã nhập tên trước đó chưa (lưu trong session)
   useEffect(() => {
@@ -128,7 +138,7 @@ Hãy đọc thật kỹ toàn bộ tài liệu để tìm ra câu trả lời ch
 Nếu câu hỏi nằm ngoài phạm vi tài liệu, hãy lịch sự từ chối và nhắc nhở học sinh hỏi các vấn đề liên quan đến bài học. Tuyệt đối không bịa đặt thông tin ngoài tài liệu.
 
 TÀI LIỆU THAM KHẢO TỪ GIÁO VIÊN:
-${safeKnowledgeBase ? safeKnowledgeBase : "Chưa có tài liệu nào được cung cấp."}`;
+${safeKnowledgeBase.trim() ? safeKnowledgeBase : "HIỆN TẠI GIÁO VIÊN CHƯA CUNG CẤP TÀI LIỆU NÀO. Hãy trả lời học sinh rằng bạn đang chờ thầy cô tải tài liệu lên và chưa thể trả lời các câu hỏi chuyên môn."}`;
 
       const history = messages.filter(m => m.id !== "1").map(m => ({
         role: m.role === "user" ? "user" : "model",
@@ -136,7 +146,7 @@ ${safeKnowledgeBase ? safeKnowledgeBase : "Chưa có tài liệu nào được c
       }));
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-flash-latest',
         contents: [
           ...history,
           { role: "user", parts: [{ text: textToSend }] }
@@ -148,12 +158,26 @@ ${safeKnowledgeBase ? safeKnowledgeBase : "Chưa có tài liệu nào được c
 
       const aiMsg: Message = { id: (Date.now() + 1).toString(), role: "ai", content: response.text || "Xin lỗi, tớ đang bị lỗi một chút." };
       setMessages((prev) => [...prev, aiMsg]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to get AI response", error);
+      
+      const errorMessage = error?.message || String(error);
+      const currentHost = window.location.hostname;
+      
+      let userFriendlyMessage = `Ối, tớ gặp lỗi: ${errorMessage}`;
+      
+      if (errorMessage.toLowerCase().includes("key") || errorMessage.includes("process is not defined") || errorMessage.includes("API")) {
+        if (currentHost.includes("vercel.app")) {
+          userFriendlyMessage = `Tớ thấy cậu đang chạy trên Vercel (${currentHost}). Cậu bắt buộc phải thêm biến môi trường GEMINI_API_KEY vào phần Settings của Vercel thì tớ mới hoạt động được nhé! 🔑`;
+        } else {
+          userFriendlyMessage = `Lỗi kết nối AI: ${errorMessage}. (Đang chạy tại: ${currentHost})`;
+        }
+      }
+
       const errorMsg: Message = { 
         id: (Date.now() + 1).toString(), 
         role: "ai", 
-        content: "Ối, tớ bị mất kết nối mạng rồi! Cậu kiểm tra lại mạng hoặc thử lại sau nhé. 😢" 
+        content: userFriendlyMessage 
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
@@ -220,26 +244,52 @@ ${safeKnowledgeBase ? safeKnowledgeBase : "Chưa có tài liệu nào được c
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-yellow-300 opacity-20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4"></div>
         
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="relative">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-lg transform rotate-3">
-              <Bot className="w-8 h-8 text-white" />
+        <div className="relative z-10 flex items-center justify-between w-full">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-lg transform rotate-3">
+                <Bot className="w-8 h-8 text-white" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-purple-600 rounded-full animate-pulse"></div>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-purple-600 rounded-full animate-pulse"></div>
+            <div>
+              <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
+                Gia sư AI EduQuest <Sparkles className="w-5 h-5 text-yellow-300" />
+              </h2>
+              <p className="text-blue-100 text-sm font-medium mt-0.5 flex items-center gap-1.5">
+                <GraduationCap className="w-4 h-4" /> Luôn sẵn sàng giải đáp mọi thắc mắc!
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
-              Gia sư AI EduQuest <Sparkles className="w-5 h-5 text-yellow-300" />
-            </h2>
-            <p className="text-blue-100 text-sm font-medium mt-0.5 flex items-center gap-1.5">
-              <GraduationCap className="w-4 h-4" /> Luôn sẵn sàng giải đáp mọi thắc mắc!
-            </p>
-          </div>
+
+          {user ? (
+            <Link 
+              to="/app/teacher" 
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 transition-colors flex items-center gap-2 text-sm font-medium text-white"
+              title="Vào trang quản lý"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="hidden sm:inline">Quản lý</span>
+            </Link>
+          ) : (
+            <Link 
+              to="/app/teacher" 
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 transition-colors flex items-center gap-2 text-xs font-medium text-white/70"
+            >
+              Đăng nhập GV
+            </Link>
+          )}
         </div>
       </div>
 
       {/* Chat Area */}
       <div className="flex-1 bg-gradient-to-b from-slate-50 to-purple-50/30 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
+        {/* Thông báo trạng thái tài liệu (chỉ hiện cho giáo viên) */}
+        {user && (
+          <div className="text-[10px] text-center text-gray-400 uppercase tracking-widest mb-4">
+            Chế độ Giáo viên: Đã kết nối Firestore
+          </div>
+        )}
         <AnimatePresence>
           {messages.map((msg, index) => (
             <motion.div

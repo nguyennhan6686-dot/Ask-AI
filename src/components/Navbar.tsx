@@ -20,8 +20,14 @@ export function Navbar() {
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi đăng nhập:", error);
+      if (error.code === "auth/unauthorized-domain") {
+        const currentDomain = window.location.hostname;
+        alert(`Lỗi: Tên miền này chưa được cấp phép trong Firebase.\n\nBạn hãy vào Firebase Console -> Authentication -> Settings -> Authorized domains và thêm tên miền này vào nhé:\n👉 ${currentDomain}`);
+      } else {
+        alert("Lỗi đăng nhập: " + error.message);
+      }
     }
   };
 
