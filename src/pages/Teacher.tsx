@@ -21,19 +21,7 @@ interface Question {
 
 export function Teacher() {
   const [user, setUser] = useState<User | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      id: "1",
-      text: "Định khoản nào sau đây là đúng khi mua thiết bị bằng tiền mặt?",
-      options: [
-        "Nợ: Tiền mặt, Có: Thiết bị",
-        "Nợ: Thiết bị, Có: Phải trả người bán",
-        "Nợ: Thiết bị, Có: Tiền mặt",
-        "Nợ: Phải trả người bán, Có: Thiết bị"
-      ],
-      correctAnswer: 2,
-    }
-  ]);
+  const [questions, setQuestions] = useState<Question[]>([]);
 
   const [knowledgeBase, setKnowledgeBase] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -48,13 +36,21 @@ export function Teacher() {
   }, []);
 
   useEffect(() => {
-    // Tải dữ liệu từ Firestore thay vì localforage
+    // Tải dữ liệu từ Firestore
     const loadData = async () => {
       try {
-        const docRef = doc(db, "appData", "knowledgeBase");
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setKnowledgeBase(docSnap.data().content || "");
+        // Load Knowledge Base
+        const kbRef = doc(db, "appData", "knowledgeBase");
+        const kbSnap = await getDoc(kbRef);
+        if (kbSnap.exists()) {
+          setKnowledgeBase(kbSnap.data().content || "");
+        }
+
+        // Load Questions
+        const qRef = doc(db, "appData", "quizData");
+        const qSnap = await getDoc(qRef);
+        if (qSnap.exists()) {
+          setQuestions(qSnap.data().questions || []);
         }
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu từ Firestore:", error);
@@ -72,9 +68,14 @@ export function Teacher() {
     }
     setIsSaving(true);
     try {
-      // Lưu dữ liệu lên Firestore
-      const docRef = doc(db, "appData", "knowledgeBase");
-      await setDoc(docRef, { content: knowledgeBase }, { merge: true });
+      // Lưu Knowledge Base
+      const kbRef = doc(db, "appData", "knowledgeBase");
+      await setDoc(kbRef, { content: knowledgeBase }, { merge: true });
+
+      // Lưu Questions
+      const qRef = doc(db, "appData", "quizData");
+      await setDoc(qRef, { questions: questions }, { merge: true });
+
       alert("Đã lưu tài liệu và câu hỏi lên hệ thống thành công!");
     } catch (error) {
       console.error("Lỗi khi lưu tài liệu:", error);

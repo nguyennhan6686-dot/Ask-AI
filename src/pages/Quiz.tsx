@@ -5,45 +5,55 @@ import { Card } from "../components/ui/Card";
 import { Clock, Trophy, XCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import { cn } from "../utils/cn";
 
-// Mock Data
-const MOCK_QUESTIONS = [
-  {
-    id: 1,
-    question: "Định khoản nào sau đây là đúng khi mua thiết bị bằng tiền mặt?",
-    options: [
-      "Nợ: Tiền mặt, Có: Thiết bị",
-      "Nợ: Thiết bị, Có: Phải trả người bán",
-      "Nợ: Thiết bị, Có: Tiền mặt",
-      "Nợ: Phải trả người bán, Có: Thiết bị"
-    ],
-    correctAnswer: 2,
-  },
-  {
-    id: 2,
-    question: "Số dư thông thường của tài khoản Doanh thu là gì?",
-    options: ["Nợ", "Có", "Bằng không", "Tùy thuộc vào giao dịch"],
-    correctAnswer: 1,
-  },
-  {
-    id: 3,
-    question: "Nếu công ty trả trước tiền thuê nhà, tài khoản nào được ghi Nợ?",
-    options: ["Chi phí thuê nhà", "Tiền mặt", "Chi phí trả trước", "Phải trả người bán"],
-    correctAnswer: 2,
-  }
-];
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+
+interface Question {
+  id: string | number;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
 
 export function Quiz() {
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isFinished, setIsFinished] = useState(false);
-
-  const question = MOCK_QUESTIONS[currentQuestion];
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isAnswered || isFinished) return;
+    const fetchQuestions = async () => {
+      try {
+        const qRef = doc(db, "appData", "quizData");
+        const qSnap = await getDoc(qRef);
+        if (qSnap.exists()) {
+          const data = qSnap.data().questions || [];
+          // Map to match the expected structure if necessary
+          const formatted = data.map((q: any) => ({
+            id: q.id,
+            question: q.text || q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer
+          }));
+          setQuestions(formatted);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải câu hỏi:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, []);
+
+  const question = questions[currentQuestion];
+
+  useEffect(() => {
+    if (isAnswered || isFinished || questions.length === 0) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -74,7 +84,7 @@ export function Quiz() {
   };
 
   const handleNext = () => {
-    if (currentQuestion < MOCK_QUESTIONS.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
       setSelectedAnswer(null);
       setIsAnswered(false);
@@ -92,6 +102,29 @@ export function Quiz() {
     setTimeLeft(30);
     setIsFinished(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 flex flex-col items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Đang tải câu hỏi...</p>
+      </div>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12">
+        <Card className="p-12 text-center space-y-6">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+            <Trophy className="w-10 h-10 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800">Chưa có câu hỏi nào</h2>
+          <p className="text-gray-500">Thầy cô hiện chưa tải bộ câu hỏi trắc nghiệm lên hệ thống. Cậu quay lại sau nhé!</p>
+        </Card>
+      </div>
+    );
+  }
 
   if (isFinished) {
     return (
@@ -129,7 +162,7 @@ export function Quiz() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <div className="bg-white px-4 py-2 rounded-2xl shadow-sm font-bold text-gray-700">
-            Câu hỏi {currentQuestion + 1} / {MOCK_QUESTIONS.length}
+            Câu hỏi {currentQuestion + 1} / {questions.length}
           </div>
           <div className="bg-orange-100 px-4 py-2 rounded-2xl shadow-sm font-bold text-orange-600 flex items-center gap-2">
             <Trophy className="w-4 h-4" /> {score}
@@ -148,7 +181,7 @@ export function Quiz() {
         <motion.div
           className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
           initial={{ width: 0 }}
-          animate={{ width: `${((currentQuestion) / MOCK_QUESTIONS.length) * 100}%` }}
+          animate={{ width: `${((currentQuestion) / questions.length) * 100}%` }}
         />
       </div>
 
@@ -212,7 +245,7 @@ export function Quiz() {
             className="flex justify-end"
           >
             <Button size="lg" onClick={handleNext} className="gap-2">
-              {currentQuestion < MOCK_QUESTIONS.length - 1 ? "Câu tiếp theo" : "Xem Kết quả"}
+              {currentQuestion < questions.length - 1 ? "Câu tiếp theo" : "Xem Kết quả"}
               <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>

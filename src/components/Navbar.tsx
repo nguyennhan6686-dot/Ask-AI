@@ -1,50 +1,24 @@
 import { Link, useLocation } from "react-router-dom";
-import { Brain, Home, MessageSquare, Settings, Trophy, LogIn, LogOut } from "lucide-react";
+import { Brain, Home, MessageSquare, Settings, Trophy, LogIn, LogOut, Users } from "lucide-react";
 import { cn } from "../utils/cn";
 import { motion } from "motion/react";
-import { useState, useEffect } from "react";
-import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
-import { auth, googleProvider } from "../firebase";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Navbar() {
   const location = useLocation();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      console.error("Lỗi đăng nhập:", error);
-      if (error.code === "auth/unauthorized-domain") {
-        const currentDomain = window.location.hostname;
-        alert(`Lỗi: Tên miền này chưa được cấp phép trong Firebase.\n\nBạn hãy vào Firebase Console -> Authentication -> Settings -> Authorized domains và thêm tên miền này vào nhé:\n👉 ${currentDomain}`);
-      } else {
-        alert("Lỗi đăng nhập: " + error.message);
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
-    }
-  };
+  const { user, profile, logout } = useAuth();
 
   const links = [
     { to: "/app", icon: Home, label: "Trang chủ" },
     { to: "/app/quiz", icon: Brain, label: "Trắc nghiệm" },
     { to: "/app/chat", icon: MessageSquare, label: "Gia sư AI" },
-    { to: "/app/teacher", icon: Settings, label: "Giáo viên" },
   ];
+
+  // Thêm link quản lý nếu là Admin
+  if (profile?.role === "admin") {
+    links.push({ to: "/app/teacher", icon: Settings, label: "Giáo viên" });
+    links.push({ to: "/app/accounts", icon: Users, label: "Tài khoản" });
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 md:top-0 md:bottom-auto bg-white/80 backdrop-blur-md border-t md:border-b border-gray-200 z-50">
@@ -97,15 +71,19 @@ export function Navbar() {
             
             {user ? (
               <div className="flex items-center gap-3">
-                <img src={user.photoURL || ""} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-200" />
-                <button onClick={handleLogout} className="text-gray-500 hover:text-red-500 transition-colors" title="Đăng xuất">
+                <div className="flex flex-col items-end">
+                  <span className="text-xs font-black text-gray-900 leading-none">{profile?.displayName || user.email}</span>
+                  <span className="text-[10px] font-bold text-purple-600 uppercase tracking-tighter">{profile?.role}</span>
+                </div>
+                <img src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} alt="Avatar" className="w-8 h-8 rounded-full border border-gray-200" />
+                <button onClick={logout} className="text-gray-500 hover:text-red-500 transition-colors" title="Đăng xuất">
                   <LogOut className="w-5 h-5" />
                 </button>
               </div>
             ) : (
-              <button onClick={handleLogin} className="flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl font-medium transition-colors">
+              <Link to="/login" className="flex items-center gap-2 bg-purple-100 text-purple-700 hover:bg-purple-200 px-4 py-2 rounded-xl font-medium transition-colors">
                 <LogIn className="w-4 h-4" /> Đăng nhập
-              </button>
+              </Link>
             )}
           </div>
         </div>

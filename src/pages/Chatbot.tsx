@@ -237,109 +237,133 @@ ${safeKnowledgeBase.trim() ? safeKnowledgeBase : "HIỆN TẠI GIÁO VIÊN CHƯA
   }
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] flex flex-col drop-shadow-2xl">
+    <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] md:h-[calc(100vh-6rem)] flex flex-col relative group">
+      {/* Background Glows */}
+      <div className="absolute -top-20 -left-20 w-64 h-64 bg-blue-400/10 rounded-full blur-[100px] pointer-events-none"></div>
+      <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-purple-400/10 rounded-full blur-[100px] pointer-events-none"></div>
+
       {/* Header */}
-      <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-orange-500 rounded-t-[2rem] p-6 overflow-hidden shrink-0">
-        {/* Decorative background elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-0 left-0 w-40 h-40 bg-yellow-300 opacity-20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4"></div>
+      <div className="relative bg-white/40 backdrop-blur-xl rounded-t-[2.5rem] p-6 border border-white/40 shadow-xl shrink-0 z-20 overflow-hidden">
+        {/* Animated background gradient line */}
+        <motion.div 
+          animate={{ x: ["-100%", "100%"] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50"
+        />
         
         <div className="relative z-10 flex items-center justify-between w-full">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-lg transform rotate-3">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 transition-transform hover:rotate-0">
                 <Bot className="w-8 h-8 text-white" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-purple-600 rounded-full animate-pulse"></div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full shadow-sm"></div>
             </div>
             <div>
-              <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
-                Gia sư AI EduQuest <Sparkles className="w-5 h-5 text-yellow-300" />
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                Gia sư AI <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">EduQuest</span> <Sparkles className="w-5 h-5 text-yellow-500" />
               </h2>
-              <p className="text-blue-100 text-sm font-medium mt-0.5 flex items-center gap-1.5">
-                <GraduationCap className="w-4 h-4" /> Luôn sẵn sàng giải đáp mọi thắc mắc!
+              <p className="text-gray-500 text-sm font-medium mt-0.5 flex items-center gap-1.5">
+                <GraduationCap className="w-4 h-4 text-purple-500" /> Đồng hành cùng {studentName}
               </p>
             </div>
           </div>
 
-          {user ? (
-            <Link 
-              to="/app/teacher" 
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 transition-colors flex items-center gap-2 text-sm font-medium text-white"
-              title="Vào trang quản lý"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="hidden sm:inline">Quản lý</span>
-            </Link>
-          ) : (
-            <Link 
-              to="/app/teacher" 
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl border border-white/20 transition-colors flex items-center gap-2 text-xs font-medium text-white/70"
-            >
-              Đăng nhập GV
-            </Link>
-          )}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <Link 
+                to="/app/teacher" 
+                className="p-2.5 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-xl border border-purple-100 transition-all flex items-center gap-2 text-sm font-bold shadow-sm"
+                title="Vào trang quản lý"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="hidden sm:inline">Quản lý</span>
+              </Link>
+            ) : (
+              <Link 
+                to="/app/teacher" 
+                className="p-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl border border-gray-200 transition-all text-xs font-bold"
+              >
+                Đăng nhập GV
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 bg-gradient-to-b from-slate-50 to-purple-50/30 overflow-y-auto p-4 md:p-6 space-y-6 scroll-smooth">
-        {/* Thông báo trạng thái tài liệu (chỉ hiện cho giáo viên) */}
+      <div className="flex-1 bg-white/20 backdrop-blur-sm overflow-y-auto p-4 md:p-8 space-y-8 scroll-smooth relative z-10 border-x border-white/40">
         {user && (
-          <div className="text-[10px] text-center text-gray-400 uppercase tracking-widest mb-4">
-            Chế độ Giáo viên: Đã kết nối Firestore
+          <div className="flex justify-center mb-6">
+            <div className="px-3 py-1 bg-purple-100/50 backdrop-blur-md border border-purple-200 rounded-full text-[10px] font-bold text-purple-600 uppercase tracking-widest">
+              Chế độ Giáo viên
+            </div>
           </div>
         )}
-        <AnimatePresence>
+        
+        <AnimatePresence mode="popLayout">
           {messages.map((msg, index) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
-                "flex gap-3 max-w-[90%] md:max-w-[80%]",
+                "flex gap-4 max-w-[92%] md:max-w-[85%]",
                 msg.role === "user" ? "ml-auto flex-row-reverse" : ""
               )}
             >
               <div className={cn(
-                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-md z-10",
+                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg z-10 mt-1",
                 msg.role === "user" 
-                  ? "bg-gradient-to-br from-orange-400 to-orange-500 text-white" 
-                  : "bg-gradient-to-br from-blue-500 to-purple-600 text-white"
+                  ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white" 
+                  : "bg-gradient-to-br from-blue-600 to-purple-700 text-white"
               )}>
                 {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
               </div>
               
               <div className={cn(
-                "p-4 text-[15px] leading-relaxed shadow-sm relative group",
+                "p-5 text-[15px] leading-relaxed shadow-xl relative group transition-all",
                 msg.role === "user" 
-                  ? "bg-white text-gray-800 rounded-2xl rounded-tr-sm border border-gray-100" 
-                  : "bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-purple-100/50 shadow-purple-900/5"
+                  ? "bg-white text-gray-800 rounded-3xl rounded-tr-none border border-gray-100 shadow-orange-900/5" 
+                  : "bg-white text-gray-800 rounded-3xl rounded-tl-none border border-purple-100 shadow-purple-900/5"
               )}>
-                <div className="whitespace-pre-wrap font-medium">{msg.content}</div>
+                <div className="whitespace-pre-wrap font-medium leading-relaxed">{msg.content}</div>
+                
+                {/* Subtle timestamp or indicator could go here */}
+                <div className={cn(
+                  "absolute -bottom-5 text-[10px] font-bold uppercase tracking-tighter opacity-0 group-hover:opacity-40 transition-opacity",
+                  msg.role === "user" ? "right-0" : "left-0"
+                )}>
+                  {msg.role === "user" ? "Bạn" : "Gia sư AI"}
+                </div>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
 
-        {/* Suggested Prompts (Only show if no user messages yet) */}
+        {/* Suggested Prompts */}
         {messages.length === 1 && !isLoading && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-col gap-2 mt-8 max-w-[80%] ml-14"
+            transition={{ delay: 0.6 }}
+            className="flex flex-col gap-3 mt-10 ml-14"
           >
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Gợi ý cho cậu:</p>
+            <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+              <Sparkles className="w-3 h-3 text-yellow-500" /> Gợi ý cho cậu
+            </div>
             <div className="flex flex-wrap gap-2">
               {SUGGESTED_PROMPTS.map((prompt, i) => (
                 <button
                   key={i}
                   onClick={() => handleSend(prompt)}
-                  className="text-left bg-white border border-purple-100 hover:border-purple-300 hover:bg-purple-50 text-purple-700 text-sm py-2 px-4 rounded-xl shadow-sm transition-all hover:-translate-y-0.5 flex items-center gap-2"
+                  className="text-left bg-white/80 backdrop-blur-md border border-purple-100 hover:border-purple-400 hover:bg-purple-50 text-purple-700 text-sm py-3 px-5 rounded-2xl shadow-sm transition-all hover:-translate-y-1 hover:shadow-md flex items-center gap-3 group"
                 >
-                  <Lightbulb className="w-4 h-4 text-yellow-500" /> {prompt}
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                    <Lightbulb className="w-4 h-4 text-yellow-600" />
+                  </div>
+                  <span className="font-bold">{prompt}</span>
                 </button>
               ))}
             </div>
@@ -350,45 +374,60 @@ ${safeKnowledgeBase.trim() ? safeKnowledgeBase : "HIỆN TẠI GIÁO VIÊN CHƯA
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex gap-3 max-w-[80%]"
+            className="flex gap-4 max-w-[80%]"
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-700 text-white flex items-center justify-center shrink-0 shadow-lg">
               <Bot className="w-5 h-5" />
             </div>
-            <div className="p-4 rounded-2xl bg-white border border-purple-100 rounded-tl-sm flex items-center gap-3 shadow-sm">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+            <div className="p-5 rounded-3xl bg-white border border-purple-100 rounded-tl-none flex items-center gap-4 shadow-xl">
+              <div className="flex gap-1.5">
+                <motion.span 
+                  animate={{ scale: [1, 1.5, 1] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                  className="w-2 h-2 bg-purple-400 rounded-full"
+                ></motion.span>
+                <motion.span 
+                  animate={{ scale: [1, 1.5, 1] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                  className="w-2 h-2 bg-purple-500 rounded-full"
+                ></motion.span>
+                <motion.span 
+                  animate={{ scale: [1, 1.5, 1] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                  className="w-2 h-2 bg-purple-600 rounded-full"
+                ></motion.span>
               </div>
-              <span className="text-purple-600/70 font-medium text-sm">Tớ đang suy nghĩ...</span>
+              <span className="text-purple-700 font-black text-xs uppercase tracking-widest">Đang suy nghĩ...</span>
             </div>
           </motion.div>
         )}
-        <div ref={messagesEndRef} className="h-4" />
+        <div ref={messagesEndRef} className="h-8" />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white rounded-b-[2rem] border-t border-gray-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)] shrink-0">
+      <div className="p-6 bg-white/60 backdrop-blur-xl rounded-b-[2.5rem] border border-white/40 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] shrink-0 z-20">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSend(); }} 
-          className="relative flex items-center max-w-4xl mx-auto"
+          className="relative flex items-center max-w-4xl mx-auto group"
         >
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Hỏi tớ về bài học hôm nay nhé..."
-            className="w-full bg-gray-50 hover:bg-gray-100 focus:bg-white border-2 border-transparent focus:border-purple-400 rounded-full py-4 pl-6 pr-16 outline-none transition-all shadow-inner text-gray-700 font-medium placeholder:text-gray-400"
+            className="w-full bg-white/80 hover:bg-white focus:bg-white border-2 border-gray-100 focus:border-purple-500 rounded-2xl py-5 pl-7 pr-20 outline-none transition-all shadow-sm text-gray-800 font-bold placeholder:text-gray-400 text-lg"
           />
           <button 
             type="submit" 
             disabled={!input.trim() || isLoading} 
-            className="absolute right-2 w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white flex items-center justify-center transition-all hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            className="absolute right-2.5 w-14 h-14 bg-gradient-to-br from-blue-600 via-purple-600 to-purple-700 rounded-xl text-white flex items-center justify-center transition-all hover:scale-105 hover:shadow-xl hover:rotate-2 disabled:opacity-30 disabled:hover:scale-100 disabled:hover:rotate-0 disabled:cursor-not-allowed shadow-lg"
           >
-            <Send className="w-5 h-5 ml-1" />
+            <Send className="w-6 h-6 ml-1" />
           </button>
         </form>
+        <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-4">
+          EduQuest AI • Học tập thông minh hơn mỗi ngày
+        </p>
       </div>
     </div>
   );
